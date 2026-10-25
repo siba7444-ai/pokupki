@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Список покупок с бюджетом</title>
+<style>
+  :root{
+    --line:#e2e8f0;
+    --muted:#94a3b8;
+    --accent:#2563eb;
+    --green:#16a34a;
+    --red:#dc2626;
+  }
+  *{box-sizing:border-box}
+  body{
+    margin:0;
+    font-family:system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+    background:linear-gradient(180deg,#eef2f7 0%,#f8fafc 100%);
+    background-attachment:fixed;
+    color:#0f172a;
+    padding:28px 16px 160px;
+    -webkit-font-smoothing:antialiased;
+  }
+  .wrap{max-width:720px;margin:0 auto}
+
+  h1{font-size:24px;margin:0 0 18px;letter-spacing:-.02em}
+  h1 small{display:block;font-size:13px;font-weight:400;color:#64748b;margin-top:6px;letter-spacing:0}
+
+  .card{
+    background:#fff;
+    border-radius:18px;
+    border:1px solid rgba(15,23,42,.06);
+    box-shadow:0 10px 30px -14px rgba(15,23,42,.25), 0 2px 6px rgba(15,23,42,.04);
+    overflow:hidden;
+  }
+
+  /* ---------- Бюджет ---------- */
+  .budget-row{
+    display:flex;align-items:center;justify-content:space-between;gap:16px;
+    padding:18px;border-bottom:1px solid var(--line);
+    background:linear-gradient(180deg,#f8fafc,#fff);
+  }
+  .budget-row label{font-weight:600;font-size:15px;color:#334155}
+  .money{
+    display:flex;align-items:center;gap:8px;
+    background:#f1f5f9;border:1px solid var(--line);border-radius:12px;
+    padding:8px 14px;transition:.15s;
+  }
+  .money:focus-within{
+    border-color:#93c5fd;background:#fff;
+    box-shadow:0 0 0 4px rgba(37,99,235,.12);
+  }
+  .money input{
+    border:0;background:transparent;outline:none;padding:0;
+    font:inherit;font-weight:700;font-size:20px;text-align:right;
+    width:130px;color:#0f172a;font-variant-numeric:tabular-nums;
+  }
+  .money span{color:#64748b;font-weight:600}
+
+  /* ---------- Шапка таблицы ---------- */
+  .head{
+    display:grid;
+    grid-template-columns:28px minmax(0,1fr) 130px 34px;
+    gap:10px;align-items:center;
+    padding:10px 18px;
+    font-size:11px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;
+    color:var(--muted);
+    border-bottom:1px solid var(--line);
+  }
+  .head .right{text-align:right;padding-right:4px}
+
+  /* ---------- Строки ---------- */
+  .row{
+    display:grid;
+    grid-template-columns:28px minmax(0,1fr) 130px 34px;
+    gap:10px;align-items:center;
+    padding:9px 18px;
+    border-bottom:1px solid #f1f5f9;
+    transition:background .15s;
+  }
+  .row:hover{background:#f8fafc}
+  .row.done{background:#f0fdf4}
+
+  .chk{
+    width:20px;height:20px;margin:0;justify-self:center;
+    accent-color:var(--green);cursor:pointer;
+  }
+
+  .name,.cost{
+    border:0;border-bottom:1px dashed #cbd5e1;background:transparent;
+    font:inherit;font-size:15px;color:#0f172a;outline:none;
+    padding:6px 2px;width:100%;transition:border-color .15s;
+  }
+  .name{font-weight:500}
+  .cost{font-weight:600;text-align:right;font-variant-numeric:tabular-nums}
+  .name:focus,.cost:focus{border-bottom-color:var(--accent)}
+  .name::placeholder,.cost::placeholder{color:#cbd5e1;font-weight:400}
+
+  .row.done .name,.row.done .cost{text-decoration:line-through;color:var(--muted)}
+
+  .del{
+    width:30px;height:30px;border:0;border-radius:8px;background:transparent;
+    color:#cbd5e1;font-size:15px;line-height:1;cursor:pointer;transition:.15s;
+  }
+  .del:hover{background:#fee2e2;color:var(--red)}
+
+  .add{
+    display:block;width:100%;border:0;border-top:1px solid var(--line);
+    background:#fff;padding:16px;font:inherit;font-weight:600;
+    color:var(--accent);cursor:pointer;transition:.15s;
+  }
+  .add:hover{background:#eff6ff}
+
+  /* ---------- Нижняя закреплённая панель ---------- */
+  .bottom{
+    position:fixed;left:0;right:0;bottom:0;z-index:10;
+    background:rgba(255,255,255,.94);
+    -webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);
+    border-top:1px solid var(--line);
+    box-shadow:0 -8px 24px -14px rgba(15,23,42,.35);
+    padding-bottom:env(safe-area-inset-bottom);
+  }
+  .bottom-inner{max-width:720px;margin:0 auto;padding:14px 18px}
+
+  .bar{height:6px;border-radius:99px;background:#e2e8f0;overflow:hidden;margin-bottom:12px}
+  .fill{
+    height:100%;width:0;border-radius:99px;
+    background:linear-gradient(90deg,#34d399,#16a34a);
+    transition:width .3s ease, background .3s;
+  }
+  .fill.over{background:linear-gradient(90deg,#f87171,#dc2626)}
+
+  .stats{display:flex;justify-content:space-between;align-items:flex-end;gap:12px}
+  .stat{display:flex;flex-direction:column;gap:3px;min-width:0}
+  .stat .label{
+    font-size:10px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;
+    color:var(--muted);white-space:nowrap;
+  }
+  .stat .value{font-size:16px;font-weight:700;font-variant-numeric:tabular-nums;white-space:nowrap}
+  .stat.main{align-items:flex-end}
+  .stat.main .value{font-size:26px;letter-spacing:-.02em;color:var(--green);transition:color .2s}
+  .stat.main .value.neg{color:var(--red)}
+
+  /* ---------- Мобильные ---------- */
+  @media (max-width:520px){
+    body{padding:18px 10px 150px}
+    h1{font-size:20px}
+    .head,.row{grid-template-columns:24px minmax(0,1fr) 88px 30px;gap:8px;padding-left:12px;padding-right:12px}
+    .head{font-size:10px}
+    .money input{width:96px;font-size:18px}
+    .stat .value{font-size:14px}
+    .stat.main .value{font-size:21px}
+    .bottom-inner{padding:12px}
+  }
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <h1>
+    🛒 Список покупок
+    <small>Отмечайте купленное галочкой — сумма сразу вычитается из бюджета</small>
+  </h1>
+
+  <div class="card">
+    <div class="budget-row">
+      <label for="budget">Бюджет</label>
+      <div class="money">
+        <input id="budget" type="number" min="0" step="1" value="5000" inputmode="decimal">
+        <span>₽</span>
+      </div>
+    </div>
+
+    <div class="head">
+      <span></span>
+      <span>Название</span>
+      <span class="right">Стоимость, ₽</span>
+      <span></span>
+    </div>
+
+    <div id="list"></div>
+
+    <button class="add" id="addBtn" type="button">+ Добавить покупку</button>
+  </div>
+</div>
+
+<div class="bottom">
+  <div class="bottom-inner">
+    <div class="bar"><div class="fill" id="fill"></div></div>
+    <div class="stats">
+      <div class="stat">
+        <span class="label">Бюджет</span>
+        <span class="value" id="budgetView">0 ₽</span>
+      </div>
+      <div class="stat">
+        <span class="label">Потрачено</span>
+        <span class="value" id="spentView">0 ₽</span>
+      </div>
+      <div class="stat main">
+        <span class="label">Остаток</span>
+        <span class="value" id="restView" aria-live="polite">0 ₽</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+(function () {
+  const list       = document.getElementById('list');
+  const budgetInput= document.getElementById('budget');
+  const budgetView = document.getElementById('budgetView');
+  const spentView  = document.getElementById('spentView');
+  const restView   = document.getElementById('restView');
+  const fill       = document.getElementById('fill');
+
+  const nf = new Intl.NumberFormat('ru-RU', { maximumFractionDigits: 2 });
+  const money = n => nf.format(n) + ' ₽';
+
+  /* --- Создание строки --- */
+  function createRow(name = '', cost = '') {
+    const row = document.createElement('div');
+    row.className = 'row';
+    row.innerHTML =
+      '<input type="checkbox" class="chk" aria-label="Куплено">' +
+      '<input type="text" class="name" placeholder="Название" autocomplete="off">' +
+      '<input type="number" class="cost" min="0" step="0.01" placeholder="0" inputmode="decimal">' +
+      '<button class="del" type="button" title="Удалить">✕</button>';
+    row.querySelector('.name').value = name;
+    row.querySelector('.cost').value = cost;
+    return row;
+  }
+
+  /* --- Пересчёт --- */
+  function update() {
+    const budget = Number(budgetInput.value) || 0;
+    let spent = 0;
+
+    list.querySelectorAll('.row').forEach(row => {
+      const cost    = Number(row.querySelector('.cost').value) || 0;
+      const checked = row.querySelector('.chk').checked;
+      row.classList.toggle('done', checked);
+      if (checked) spent += cost;
+    });
+
+    const rest = budget - spent;
+
+    budgetView.textContent = money(budget);
+    spentView.textContent  = money(spent);
+    restView.textContent   = money(rest);
+    restView.classList.toggle('neg', rest < 0);
+
+    const pct = budget > 0
+      ? Math.min((spent / budget) * 100, 100)
+      : (spent > 0 ? 100 : 0);
+    fill.style.width = pct + '%';
+    fill.classList.toggle('over', rest < 0);
+  }
+
+  /* --- События --- */
+  budgetInput.addEventListener('input', update);
+  list.addEventListener('input', update);
+  list.addEventListener('change', update);
+
+  list.addEventListener('click', e => {
+    if (!e.target.classList.contains('del')) return;
+    e.target.closest('.row').remove();
+    if (!list.children.length) list.appendChild(createRow());
+    update();
+  });
+
+  // Enter в поле — новая строка ниже
+  list.addEventListener('keydown', e => {
+    if (e.key !== 'Enter') return;
+    const t = e.target;
+    if (!t.classList.contains('name') && !t.classList.contains('cost')) return;
+    e.preventDefault();
+    const row = createRow();
+    t.closest('.row').after(row);
+    row.querySelector('.name').focus();
+    update();
+  });
+
+  document.getElementById('addBtn').addEventListener('click', () => {
+    const row = createRow();
+    list.appendChild(row);
+    row.querySelector('.name').focus();
+    row.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+    update();
+  });
+
+  /* --- Стартовые позиции --- */
+  [['Хлеб', '60'], ['Молоко', '89'], ['Яйца', '120']].forEach(([n, c]) => {
+    list.appendChild(createRow(n, c));
+  });
+
+  update();
+})();
+</script>
+</body>
+</html>
