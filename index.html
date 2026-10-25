@@ -167,7 +167,7 @@
     <div class="budget-row">
       <label for="budget">Бюджет</label>
       <div class="money">
-        <input id="budget" type="number" min="0" step="1" value="5000" inputmode="decimal">
+        <input id="budget" type="number" min="0" step="1" value="0" inputmode="decimal">
         <span>₽</span>
       </div>
     </div>
@@ -265,7 +265,6 @@
   list.addEventListener('click', e => {
     if (!e.target.classList.contains('del')) return;
     e.target.closest('.row').remove();
-    if (!list.children.length) list.appendChild(createRow());
     update();
   });
 
@@ -289,11 +288,7 @@
     update();
   });
 
-  /* --- Стартовые позиции --- */
-  [['Хлеб', '60'], ['Молоко', '89'], ['Яйца', '120']].forEach(([n, c]) => {
-    list.appendChild(createRow(n, c));
-  });
-
+  // Стартовые позиции отсутствуют — список и бюджет очищены
   update();
 })();
 </script>
