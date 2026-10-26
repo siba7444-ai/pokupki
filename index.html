@@ -105,21 +105,12 @@
   }
   .del:hover{background:#fee2e2;color:var(--red)}
 
-  /* ---------- Кнопки внизу карточки ---------- */
-  .actions{
-    display:grid;grid-template-columns:1fr 1fr;
-    border-top:1px solid var(--line);
+  .add{
+    display:block;width:100%;border:0;border-top:1px solid var(--line);
+    background:#fff;padding:16px;font:inherit;font-weight:600;
+    color:var(--accent);cursor:pointer;transition:.15s;
   }
-  .actions button{
-    border:0;background:#fff;padding:16px 12px;
-    font:inherit;font-weight:600;font-size:15px;
-    cursor:pointer;transition:.15s;
-  }
-  .actions .add{color:var(--accent);border-right:1px solid var(--line)}
-  .actions .add:hover{background:#eff6ff}
-  .actions .save{color:var(--green)}
-  .actions .save:hover{background:#f0fdf4}
-  .actions .save:disabled{color:var(--muted);cursor:not-allowed;background:#f8fafc}
+  .add:hover{background:#eff6ff}
 
   /* ---------- Нижняя закреплённая панель ---------- */
   .bottom{
@@ -176,7 +167,6 @@
     .stat.main .value{font-size:21px}
     .bottom-inner{padding:12px}
     .extra-row{font-size:12px}
-    .actions button{padding:14px 8px;font-size:13px}
   }
 </style>
 </head>
@@ -206,10 +196,7 @@
 
     <div id="list"></div>
 
-    <div class="actions">
-      <button class="add" id="addBtn" type="button">+ Добавить</button>
-      <button class="save" id="saveBtn" type="button">💾 Сохранить в Excel</button>
-    </div>
+    <button class="add" id="addBtn" type="button">+ Добавить покупку</button>
   </div>
 </div>
 
@@ -245,9 +232,6 @@
   </div>
 </div>
 
-<!-- Библиотека SheetJS для генерации реального .xlsx -->
-<script src="https://cdn.sheetjs.com/xlsx-0.20.2/package/dist/xlsx.full.min.js"></script>
-
 <script>
 (function () {
   const list       = document.getElementById('list');
@@ -258,7 +242,6 @@
   const checkedSumView   = document.getElementById('checkedSumView');
   const uncheckedSumView = document.getElementById('uncheckedSumView');
   const fill       = document.getElementById('fill');
-  const saveBtn    = document.getElementById('saveBtn');
 
   const nf = new Intl.NumberFormat('ru-RU', { maximumFractionDigits: 2 });
   const money = n => nf.format(n) + ' ₽';
@@ -280,8 +263,8 @@
   /* --- Пересчёт --- */
   function update() {
     const budget = Number(budgetInput.value) || 0;
-    let spent = 0;
-    let uncheckedSum = 0;
+    let spent = 0;        // сумма выделенных (они же «потрачено»)
+    let uncheckedSum = 0; // сумма невыделенных
 
     list.querySelectorAll('.row').forEach(row => {
       const cost    = Number(row.querySelector('.cost').value) || 0;
@@ -306,46 +289,6 @@
       : (spent > 0 ? 100 : 0);
     fill.style.width = pct + '%';
     fill.classList.toggle('over', rest < 0);
-  }
-
-  /* --- Экспорт в Excel --- */
-  function exportToExcel() {
-    if (typeof XLSX === 'undefined') {
-      alert('Не удалось загрузить библиотеку для экспорта. Проверьте подключение к интернету и обновите страницу.');
-      return;
-    }
-
-    const budget = Number(budgetInput.value) || 0;
-    let spent = 0, uncheckedSum = 0;
-    const rows = [['Название', 'Стоимость, ₽', 'Статус']];
-
-    list.querySelectorAll('.row').forEach(row => {
-      const name    = row.querySelector('.name').value.trim() || '(без названия)';
-      const cost    = Number(row.querySelector('.cost').value) || 0;
-      const checked = row.querySelector('.chk').checked;
-      rows.push([name, cost, checked ? 'Куплено' : 'Не куплено']);
-      if (checked) spent += cost;
-      else         uncheckedSum += cost;
-    });
-
-    const rest = budget - spent;
-
-    rows.push([]);
-    rows.push(['Итоги', '']);
-    rows.push(['Бюджет, ₽',               budget]);
-    rows.push(['Потрачено (выделено), ₽', spent]);
-    rows.push(['Остаток, ₽',              rest]);
-    rows.push(['Сумма выделенных, ₽',     spent]);
-    rows.push(['Сумма невыделенных, ₽',   uncheckedSum]);
-
-    const ws = XLSX.utils.aoa_to_sheet(rows);
-    ws['!cols'] = [{ wch: 34 }, { wch: 18 }, { wch: 14 }];
-
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, 'Список покупок');
-
-    const date = new Date().toISOString().slice(0, 10);
-    XLSX.writeFile(wb, 'список-покупок-' + date + '.xlsx');
   }
 
   /* --- События --- */
@@ -377,8 +320,6 @@
     row.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
     update();
   });
-
-  saveBtn.addEventListener('click', exportToExcel);
 
   update();
 })();
